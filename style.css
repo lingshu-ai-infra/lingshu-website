@@ -360,12 +360,8 @@ h2.section-title {
 .compare-table th.us {
   background: rgba(0, 212, 170, 0.08);
   color: var(--accent);
-  position: relative;
-}
-.compare-table th.us::after {
-  content: "👈";
-  margin-left: 6px;
-  font-size: 0.8em;
+  text-align: center;
+  font-weight: 700;
 }
 .compare-table td.center { text-align: center; }
 .compare-table tr:last-child td { border-bottom: none; }
