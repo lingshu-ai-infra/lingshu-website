@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>灵枢 AI Infra · LingShu AI Infra — Pool Engine for GPU Workloads</title>
+  <meta name="description" content="Open-source distributed GPU resource pool scheduling service. Built on SpringBoot + Netty + Protobuf. Replaces K8s static GPU binding with shared, dynamic, multi-tenant GPU pools.">
+  <meta name="keywords" content="GPU scheduling, GPU pool, K8s, SpringBoot, Netty, Protobuf, distributed scheduler, AI infra, MIG, MPS, RDMA">
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============== Navigation ============== -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#hero" class="brand">
+      <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+        <path d="M 32 4 L 56 18 L 56 46 L 32 60 L 8 46 L 8 18 Z"
+              stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"
+              fill="currentColor" fill-opacity="0.06"/>
+        <path d="M 44 22 L 22 22 L 22 42 L 36 42 L 36 32 L 28 32"
+              stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
+              stroke-linejoin="round" fill="none"/>
+        <circle cx="32" cy="14" r="1.6" fill="currentColor"/>
+        <circle cx="32" cy="50" r="1.6" fill="currentColor"/>
+        <circle cx="14" cy="32" r="1.6" fill="currentColor"/>
+        <circle cx="50" cy="32" r="1.6" fill="currentColor"/>
+      </svg>
+      LingShu AI Infra
+      <span class="brand-cn">灵枢</span>
+    </a>
+    <ul class="nav-menu">
+      <li><a href="#why">Why</a></li>
+      <li><a href="#compare">Compare</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#quickstart">Quick Start</a></li>
+      <li><a href="#ecosystem">Ecosystem</a></li>
+      <li><a href="#community">Community</a></li>
+    </ul>
+    <a class="nav-github" href="https://github.com/lingshu-ai-infra" target="_blank" rel="noopener">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+      </svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- ============== Hero ============== -->
+<header id="hero" class="hero">
+  <svg class="hero-logo" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <path d="M 32 4 L 56 18 L 56 46 L 32 60 L 8 46 L 8 18 Z"
+          stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"
+          fill="currentColor" fill-opacity="0.1"/>
+    <path d="M 44 22 L 22 22 L 22 42 L 36 42 L 36 32 L 28 32"
+          stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
+          stroke-linejoin="round" fill="none"/>
+    <circle cx="32" cy="14" r="1.6" fill="currentColor"/>
+    <circle cx="32" cy="50" r="1.6" fill="currentColor"/>
+    <circle cx="14" cy="32" r="1.6" fill="currentColor"/>
+    <circle cx="50" cy="32" r="1.6" fill="currentColor"/>
+    <line x1="32" y1="14" x2="32" y2="20" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+    <line x1="32" y1="44" x2="32" y2="50" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+    <line x1="14" y1="32" x2="20" y2="32" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+    <line x1="44" y1="32" x2="50" y2="32" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+  </svg>
+  <h1>LingShu AI Infra</h1>
+  <div class="cn-name">灵枢 AI Infra</div>
+  <div class="tagline">Pool Engine for GPU Workloads</div>
+  <p class="desc">
+    Open-source distributed GPU resource pool scheduling service. Built on SpringBoot + Netty + Protobuf.
+    Replaces K8s static GPU binding with shared, dynamic, multi-tenant GPU pools —
+    zero GPU dependency in business pods.
+  </p>
+  <div class="hero-cta">
+    <a class="btn btn-primary" href="#quickstart">Quick Start →</a>
+    <a class="btn btn-secondary" href="https://github.com/lingshu-ai-infra" target="_blank" rel="noopener">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 .587l3.668 7.568L24 9.423l-6 5.847L19.336 24 12 19.897 4.664 24 6 15.27 0 9.423l8.332-1.268z"/>
+      </svg>
+      Star on GitHub
+    </a>
+  </div>
+</header>
+
+<!-- ============== Terminal Demo ============== -->
+<section id="demo">
+  <div class="terminal">
+    <div class="terminal-bar">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-prompt">~/business-pod · gpush submit</span>
+    </div>
+    <div class="terminal-body">
+      <div class="terminal-line"><span class="terminal-prompt-sym">$</span><span class="terminal-cmd">gpush submit \</span></div>
+      <div class="terminal-line"><span class="terminal-cmd">    --op <span class="terminal-string">text_classification</span> \</span></div>
+      <div class="terminal-line"><span class="terminal-cmd">    --input <span class="terminal-string">"灵枢调度真的很强"</span> \</span></div>
+      <div class="terminal-line"><span class="terminal-cmd">    --priority <span class="terminal-key">high</span> --timeout-ms <span class="terminal-key">200</span></span></div>
+      <div class="terminal-line">&nbsp;</div>
+      <div class="terminal-line"><span class="terminal-arrow">→</span> <span class="terminal-out">[Gateway]   </span> <span class="terminal-comment">#100 SubmitTask  路由到 scheduler-01</span></div>
+      <div class="terminal-line"><span class="terminal-arrow">→</span> <span class="terminal-out">[Scheduler]  </span> 选中 worker-02 (mem 18% / util 23% / queue 1) <span class="terminal-comment">score=0.21</span></div>
+      <div class="terminal-line"><span class="terminal-arrow">→</span> <span class="terminal-out">[Worker-02]  </span> 加载 op_id=<span class="terminal-string">text_classification:v1</span> 推理 18ms</div>
+      <div class="terminal-line"><span class="terminal-arrow">→</span> <span class="terminal-out">[Gateway]   </span> 回传结果 <span class="terminal-success">task_id=0a3e9c</span></div>
+      <div class="terminal-line">&nbsp;</div>
+      <div class="terminal-line"><span class="terminal-success">✓</span> 完成 · 共 <span class="terminal-key">3</span> 跳 · 总耗时 <span class="terminal-key">42ms</span></div>
+    </div>
+  </div>
+  <div class="terminal-badges">
+    <span class="badge badge-accent">Apache 2.0</span>
+    <span class="badge">Spring Boot 3.x</span>
+    <span class="badge">Netty 4.1+</span>
+    <span class="badge">Protobuf 3.x</span>
+    <span class="badge">K8s-native</span>
+    <span class="badge">MIG · MPS · Soft</span>
+    <span class="badge">SHM · RDMA · NAS · Object</span>
+  </div>
+</section>
+
+<!-- ============== Why ============== -->
+<section id="why" class="section-light">
+  <div class="container">
+    <h2 class="section-title">Why LingShu AI Infra</h2>
+    <p class="section-subtitle">不是又一个 K8s Operator,是把 GPU 当池子用</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">①</div>
+        <h3>资源池化,不是静态绑定</h3>
+        <p>业务 Pod 不再独占 GPU 卡。所有 GPU 资源进入统一调度池,基于实时显存/算力/队列做动态分配,目标整体利用率 ≥ 70%。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">②</div>
+        <h3>多维度负载均衡</h3>
+        <p>综合评分 <code>score = mem×0.5 + util×0.3 + queue×0.2</code>,同节点亲和优先,无可用节点自动排队。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">③</div>
+        <h3>三档 GPU 隔离</h3>
+        <p>MIG 硬件切分(强)· MPS 进程组切分(中)· 单进程 CUDA context(软)。按业务等级自动选档,显存硬隔离不串扰。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">④</div>
+        <h3>四档 Out-of-band 传输</h3>
+        <p>同节点共享内存 → 跨节点 RDMA → NAS(CephFS/JuiceFS/Lustre)→ 跨可用区对象存储。metadata 走 RPC,payload 直传。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⑤</div>
+        <h3>ControllerManager 自研选主</h3>
+        <p>多轮投票 + force 票 + RESET_CONTROLLER 反脑裂。无需 Etcd/Consul,基于现有 SpringBoot 自研组件即可。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⑥</div>
+        <h3>任务状态机 + 幂等分配</h3>
+        <p>PENDING → QUEUED → ASSIGNED → RUNNING → SUCCESS/FAILED/TIMEOUT/ORPHAN 全生命周期,Idempotency-Key 防双发。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⑦</div>
+        <h3>业务轻量化</h3>
+        <p>Pod 镜像无需 CUDA/Torch/TensorRT,无需挂载 GPU 设备。瘦身后的业务镜像从 8GB+ 降到 &lt; 200MB,冷启动秒级。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== Comparison ============== -->
+<section id="compare">
+  <h2 class="section-title">How it compares</h2>
+  <p class="section-subtitle">对比 K8s 原生、Volcano、KubeRay、Ray</p>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width: 28%;">能力维度</th>
+        <th class="us">LingShu AI Infra</th>
+        <th>K8s 原生</th>
+        <th>Volcano</th>
+        <th>KubeRay</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>GPU 共享(同卡多业务)</td>
+        <td class="center"><span class="yes">✓ MIG/MPS/Soft</span></td>
+        <td class="center"><span class="no">✗</span></td>
+        <td class="center"><span class="partial">△ MIG/MPS</span></td>
+        <td class="center"><span class="partial">△ MPS</span></td>
+      </tr>
+      <tr>
+        <td>动态调度(实时负载)</td>
+        <td class="center"><span class="yes">✓ 多维度</span></td>
+        <td class="center"><span class="no">✗ 节点级</span></td>
+        <td class="center"><span class="partial">△ Gang</span></td>
+        <td class="center"><span class="partial">△ Head Pod</span></td>
+      </tr>
+      <tr>
+        <td>业务无 GPU 依赖</td>
+        <td class="center"><span class="yes">✓ 完全解耦</span></td>
+        <td class="center"><span class="no">✗ 需挂载</span></td>
+        <td class="center"><span class="no">✗ 需挂载</span></td>
+        <td class="center"><span class="no">✗ 需挂载</span></td>
+      </tr>
+      <tr>
+        <td>大张量 Out-of-band</td>
+        <td class="center"><span class="yes">✓ 四档</span></td>
+        <td class="center"><span class="no">✗</span></td>
+        <td class="center"><span class="no">✗</span></td>
+        <td class="center"><span class="partial">△ GCS/OSS</span></td>
+      </tr>
+      <tr>
+        <td>调度器选主(无 Etcd)</td>
+        <td class="center"><span class="yes">✓ 自研投票</span></td>
+        <td class="center"><span class="yes">✓ 内置</span></td>
+        <td class="center"><span class="yes">✓ 内置</span></td>
+        <td class="center"><span class="yes">✓ 内置</span></td>
+      </tr>
+      <tr>
+        <td>Python Op 集成</td>
+        <td class="center"><span class="yes">✓ PyO3/Sidecar/Subprocess</span></td>
+        <td class="center"><span class="no">✗ 需自实现</span></td>
+        <td class="center"><span class="no">✗ 需自实现</span></td>
+        <td class="center"><span class="partial">△ Actor</span></td>
+      </tr>
+      <tr>
+        <td>部署复杂度</td>
+        <td class="center"><span class="yes">✓ 低(SpringBoot 单体)</span></td>
+        <td class="center">中</td>
+        <td class="center">中</td>
+        <td class="center">高(Operator + Ray)</td>
+      </tr>
+      <tr>
+        <td>License</td>
+        <td class="center">Apache 2.0</td>
+        <td class="center">Apache 2.0</td>
+        <td class="center">Apache 2.0</td>
+        <td class="center">Apache 2.0</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============== Architecture ============== -->
+<section id="architecture" class="section-light">
+  <div class="container">
+    <h2 class="section-title">Architecture</h2>
+    <p class="section-subtitle">四层解耦:业务 → 网关 → 调度 → Worker</p>
+    <div class="arch">        <span class="layer">┌─────────────────────────────────────────────────────────────┐</span>
+        <span class="layer">│  Layer 1 — Business Pods (Client)                            │</span>
+        <span class="layer">│   无 GPU / 无 CUDA / 镜像 &lt; 200MB                            │</span>
+        <span class="layer">└──────────────────────────────┬──────────────────────────────┘</span>
+                                       <span class="arrow">│</span>  Netty-RPC over TCP
+                                       <span class="arrow">│</span>  (复用 cloud-basic Protobuf)
+                                       <span class="arrow">▼</span>
+        <span class="layer">┌─────────────────────────────────────────────────────────────┐</span>
+        <span class="layer">│  Layer 2 — Gateway (Java + cloud-basic)                       │</span>
+        <span class="layer">│  长连接池 · 限流配额 · 协议解析 · 路由转发                    │</span>
+        <span class="layer">└──────────────────────────────┬──────────────────────────────┘</span>
+                                       <span class="arrow">│</span>  SubmitTask / QueryTask
+                                       <span class="arrow">▼</span>
+        <span class="layer">┌─────────────────────────────────────────────────────────────┐</span>
+        <span class="layer">│  Layer 3 — Scheduler (Cluster, Leader-elected)                │</span>
+        <span class="layer">│  ControllerManager 选主 · 资源视图 · 负载均衡 · 任务队列      │</span>
+        <span class="layer">│  状态机 · 幂等键 · 心跳对账 · MySQL 持久化                    │</span>
+        <span class="layer">└──────────────────────────────┬──────────────────────────────┘</span>
+                                       <span class="arrow">│</span>  WorkerHeartbeat / Dispatch
+                                       <span class="arrow">▼</span>
+        <span class="layer">┌─────────────────────────────────────────────────────────────┐</span>
+        <span class="layer">│  Layer 4 — Worker Pool (Java → Rust 演进)                     │</span>
+        <span class="layer">│  MIG/MPS/Soft 三档隔离 · PyO3 / Sidecar Python Op 集成        │</span>
+        <span class="layer">│  SHM/RDMA/NAS/Object 四档大张量传输                          │</span>
+        <span class="layer">└─────────────────────────────────────────────────────────────┘</span></div>
+    <p class="arch-footnote">MIG(硬件切分)/ MPS(进程组)/ Soft(单进程)三档隔离;out-of-band 传输 metadata 走 RPC,payload 直传。</p>
+  </div>
+</section>
+
+<!-- ============== Quick Start ============== -->
+<section id="quickstart">
+  <h2 class="section-title">Quick Start</h2>
+  <p class="section-subtitle">业务侧引入 Client SDK,即可向 GPU 池提交任务</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="maven" role="tab">Maven</button>
+    <button class="tab" data-tab="gradle" role="tab">Gradle</button>
+    <button class="tab" data-tab="java" role="tab">Java</button>
+    <button class="tab" data-tab="yaml" role="tab">YAML</button>
+  </div>
+
+  <div id="panel-maven" class="tab-panel active" role="tabpanel">
+<pre><span class="c">&lt;!-- pom.xml --&gt;</span>
+&lt;<span class="k">dependency</span>&gt;
+  &lt;<span class="k">groupId</span>&gt;<span class="s">ai.lingshu.infra</span>&lt;/<span class="k">groupId</span>&gt;
+  &lt;<span class="k">artifactId</span>&gt;<span class="s">lingshu-gpu-client</span>&lt;/<span class="k">artifactId</span>&gt;
+  &lt;<span class="k">version</span>&gt;<span class="s">0.1.0-alpha</span>&lt;/<span class="k">version</span>&gt;
+&lt;/<span class="k">dependency</span>&gt;</pre>
+  </div>
+
+  <div id="panel-gradle" class="tab-panel" role="tabpanel">
+<pre><span class="c">// build.gradle</span>
+<span class="k">dependencies</span> {
+    implementation <span class="s">'ai.lingshu.infra:lingshu-gpu-client:0.1.0-alpha'</span>
+}</pre>
+  </div>
+
+  <div id="panel-java" class="tab-panel" role="tabpanel">
+<pre><span class="c">// SubmitAndQueryDemo.java</span>
+<span class="k">public class</span> SubmitAndQueryDemo {
+    <span class="k">public static void</span> <span class="k">main</span>(String[] args) <span class="k">throws</span> Exception {
+        <span class="k">try</span> (GpuClient client = <span class="k">new</span> GpuClient(<span class="s">"gateway.lingshu-infra:2381"</span>)) {
+            String taskId = client.submit(SubmitTaskRequest.<span class="k">newBuilder</span>()
+                .setOpId(<span class="s">"text_classification"</span>)
+                .setInput(<span class="s">"灵枢调度真的很强"</span>)
+                .setPriority(<span class="s">"high"</span>)
+                .setTimeoutMs(<span class="s">200</span>)
+                .<span class="k">build</span>());
+
+            QueryTaskResponse result = client.query(taskId);
+            System.out.<span class="k">println</span>(<span class="s">"status="</span> + result.getStatus()
+                + <span class="s">" output="</span> + result.getOutput());
+        }
+    }
+}</pre>
+  </div>
+
+  <div id="panel-yaml" class="tab-panel" role="tabpanel">
+<pre><span class="c"># application.yml — 业务 Pod 配置</span>
+<span class="k">lingshu</span>:
+  <span class="k">gpu</span>:
+    <span class="k">client</span>:
+      <span class="k">gateway</span>: <span class="s">gateway.lingshu-infra:2381</span>
+      <span class="k">connect-timeout-ms</span>: <span class="s">3000</span>
+      <span class="k">retry</span>: <span class="s">3</span>
+    <span class="k">submit</span>:
+      <span class="k">default-op</span>: <span class="s">text_classification</span>
+      <span class="k">default-priority</span>: <span class="s">normal</span>
+      <span class="k">default-timeout-ms</span>: <span class="s">200</span></pre>
+  </div>
+
+  <p class="full-docs-link">完整使用文档、Op 注册规范、调度策略调优 → <a href="https://github.com/lingshu-ai-infra/lingshu-docs" target="_blank" rel="noopener">lingshu-docs</a></p>
+</section>
+
+<!-- ============== Ecosystem ============== -->
+<section id="ecosystem" class="section-light">
+  <div class="container">
+    <h2 class="section-title">Ecosystem</h2>
+    <p class="section-subtitle">12 个仓库,完整开源演进</p>
+    <div class="ecosystem">
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-design" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-design</div>
+        <div class="repo-desc">技术方案与 MVP Story 文档(V2.1 增强版 · 28 人日 6 周)</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-website" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-website</div>
+        <div class="repo-desc">组织官网源码(本仓库,纯 HTML+CSS)</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-docs" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-docs</div>
+        <div class="repo-desc">Docusaurus 详细文档站(架构、Op 规范、部署指南)</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-gpu-proto" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-gpu-proto</div>
+        <div class="repo-desc">Protobuf 协议定义(11 个核心消息体 + Header map&lt;string,string&gt;)</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-gpu-client" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-gpu-client</div>
+        <div class="repo-desc">业务侧 Client SDK(Java/Rust 双语言,封装 Netty 重试 + 同步/异步)</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-gpu-gateway" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-gpu-gateway</div>
+        <div class="repo-desc">RPC 网关:长连接池 · 限流 · 配额 · 路由(复用 cloud-basic 通道)</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-gpu-scheduler" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-gpu-scheduler</div>
+        <div class="repo-desc">调度核心:ControllerManager 选主 · 多维度负载均衡 · 任务状态机</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-gpu-worker" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-gpu-worker</div>
+        <div class="repo-desc">GPU Worker:Op 注册 · 任务执行 · 三档隔离 · Python Sidecar</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-gpu-demo" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-gpu-demo</div>
+        <div class="repo-desc">端到端 Demo:text_classification 推理业务接入示例</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-deploy" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-deploy</div>
+        <div class="repo-desc">K8s manifests · Helm charts · 部署脚本(单集群 → 多集群)</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-bench" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-bench</div>
+        <div class="repo-desc">性能基准 · 负载画像 · 调度器吞吐测试 · P99 延迟测量</div>
+      </a>
+      <a class="repo-card" href="https://github.com/lingshu-ai-infra/lingshu-examples" target="_blank" rel="noopener">
+        <div class="repo-name">lingshu-examples</div>
+        <div class="repo-desc">示例算子(PyTorch / ONNX / TensorRT)· 多业务接入范例</div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ============== Community ============== -->
+<section id="community">
+  <h2 class="section-title">Community</h2>
+  <p class="section-subtitle">从单点 MVP 到团队协作,共建 GPU 调度开放生态</p>
+  <div class="community">
+    <div class="community-card">
+      <div class="community-icon">💬</div>
+      <h3>Discord</h3>
+      <p><a href="https://discord.gg/lingshu-ai-infra" target="_blank" rel="noopener">discord.gg/lingshu-ai-infra</a></p>
+    </div>
+    <div class="community-card">
+      <div class="community-icon">🐛</div>
+      <h3>GitHub Issues</h3>
+      <p><a href="https://github.com/lingshu-ai-infra/lingshu-design/issues" target="_blank" rel="noopener">lingshu-design/issues</a></p>
+    </div>
+    <div class="community-card">
+      <div class="community-icon">🤝</div>
+      <h3>Contribute</h3>
+      <p>详见 <a href="https://github.com/lingshu-ai-infra/lingshu-design/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">CONTRIBUTING.md</a></p>
+    </div>
+  </div>
+</section>
+
+<!-- ============== Footer ============== -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div>
+        <div class="footer-brand">
+          <svg viewBox="0 0 64 64" fill="none" aria-hidden="true">
+            <path d="M 32 4 L 56 18 L 56 46 L 32 60 L 8 46 L 8 18 Z"
+                  stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"
+                  fill="currentColor" fill-opacity="0.06"/>
+            <path d="M 44 22 L 22 22 L 22 42 L 36 42 L 36 32 L 28 32"
+                  stroke="currentColor" stroke-width="2.6" stroke-linecap="round"
+                  stroke-linejoin="round" fill="none"/>
+            <circle cx="32" cy="14" r="1.6" fill="currentColor"/>
+            <circle cx="32" cy="50" r="1.6" fill="currentColor"/>
+            <circle cx="14" cy="32" r="1.6" fill="currentColor"/>
+            <circle cx="50" cy="32" r="1.6" fill="currentColor"/>
+          </svg>
+          LingShu AI Infra · 灵枢
+        </div>
+        <div class="footer-tagline">
+          Pool Engine for GPU Workloads.<br>
+          Built with ❤ by the LingShu community.
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-gpu-scheduler" target="_blank" rel="noopener">Scheduler</a></li>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-gpu-gateway" target="_blank" rel="noopener">Gateway</a></li>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-gpu-worker" target="_blank" rel="noopener">Worker</a></li>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-docs" target="_blank" rel="noopener">Docs</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <ul>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-design/issues" target="_blank" rel="noopener">Issues</a></li>
+          <li><a href="https://discord.gg/lingshu-ai-infra" target="_blank" rel="noopener">Discord</a></li>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-design/blob/main/ROADMAP.md" target="_blank" rel="noopener">Roadmap</a></li>
+          <li><a href="https://github.com/orgs/lingshu-ai-infra/discussions" target="_blank" rel="noopener">Discussions</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Governance</h4>
+        <ul>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-design/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener">CoC</a></li>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-design/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a></li>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-design/blob/main/SECURITY.md" target="_blank" rel="noopener">Security</a></li>
+          <li><a href="https://github.com/lingshu-ai-infra/lingshu-design/blob/main/LICENSE" target="_blank" rel="noopener">License</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 LingShu AI Infra Community</span>
+      <span class="footer-license">Apache License 2.0</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var target = this.getAttribute('data-tab');
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      this.classList.add('active');
+      document.getElementById('panel-' + target).classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
